@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: 23met-helper
+    runtime: docker
+    plan: starter
+    healthCheckPath: /
