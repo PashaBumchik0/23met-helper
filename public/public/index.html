@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111827">
+  <title>Цены 23met</title>
+  <style>
+    :root{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;color:#111827;background:#f3f4f6}
+    body{margin:0;padding:env(safe-area-inset-top) 14px env(safe-area-inset-bottom);max-width:900px;margin:auto}
+    h1{font-size:26px;margin:24px 0 6px}.muted{color:#6b7280;margin-top:0}.card{background:white;border-radius:18px;padding:16px;margin:14px 0;box-shadow:0 1px 8px #0001}
+    textarea{box-sizing:border-box;width:100%;min-height:230px;border:1px solid #d1d5db;border-radius:14px;padding:12px;font-size:16px;resize:vertical}
+    button{width:100%;border:0;border-radius:14px;padding:14px;font-size:17px;font-weight:650;background:#111827;color:white;margin-top:12px}
+    button:disabled{opacity:.5}.status{margin:10px 0;color:#4b5563}.table-wrap{overflow:auto}table{width:100%;border-collapse:collapse;font-size:14px}th,td{text-align:left;border-bottom:1px solid #e5e7eb;padding:10px 8px;white-space:nowrap}th{color:#6b7280}.error{color:#b91c1c;white-space:normal}.ok{color:#166534}a{color:#1d4ed8}
+  </style>
+</head>
+<body>
+  <h1>Цены 23met</h1>
+  <p class="muted">Вставьте список. Сервис найдёт строку «Металлсервис», цену за тонну и сумму.</p>
+  <section class="card">
+    <textarea id="input">Двутавр 25Б1 – 0.394тн
+Двутавр 25К1 – 5.279тн
+Труба 42*3 – 1.369тн
+Уголок 63*5 – 0.625тн
+Лист 6 – 0.095тн</textarea>
+    <button id="run">Получить цены</button>
+    <div id="status" class="status" aria-live="polite"></div>
+  </section>
+  <section id="result" class="card" hidden>
+    <div class="table-wrap"><table><thead><tr><th>Позиция</th><th>Тн</th><th>Сталь</th><th>₽/т</th><th>Сумма</th><th>Источник</th></tr></thead><tbody id="rows"></tbody></table></div>
+  </section>
+<script>
+const $=s=>document.querySelector(s);const fmt=n=>n==null?'—':new Intl.NumberFormat('ru-RU').format(n)+' ₽';
+$('#run').addEventListener('click',async()=>{
+  const btn=$('#run'),status=$('#status'),result=$('#result'),rows=$('#rows');
+  btn.disabled=true;status.textContent='Получаю цены. Сайт может отвечать медленно из-за защиты от частых запросов…';result.hidden=true;rows.innerHTML='';
+  try{
+    const r=await fetch('/api/prices',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({text:$('#input').value})});
+    const data=await r.json();if(!r.ok)throw new Error(data.error||'Ошибка');
+    data.results.forEach(x=>{const tr=document.createElement('tr');tr.innerHTML=`<td>${esc(x.normalized||x.source)}</td><td>${x.tonnage??'—'}</td><td>${esc(x.steel||'—')}</td><td>${x.error?'<span class="error">'+esc(x.error)+'</span>':fmt(x.pricePerTon)}</td><td>${fmt(x.total)}</td><td>${x.url?'<a target="_blank" href="'+x.url+'">Открыть</a>':'—'}</td>`;rows.appendChild(tr)});
+    result.hidden=false;status.textContent='Готово.';
+  }catch(e){status.textContent='Ошибка: '+e.message}finally{btn.disabled=false}
+});
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+</script>
+</body></html>
